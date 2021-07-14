@@ -1,0 +1,233 @@
+Page 1  (VOYAGER PILOT) Model Run
+Wasatch Front Regional Council
+----------------------------------
+PILOT (v.08/13/2019 [6.4.5 x64]) Wed Jul 14 11:22:57 2021
+
+Args: E:\TDM-Externals-Using-National\2_skim_through_externals\_skim_for_externals.s -SE:\TDM-Externals-Using-National\2_skim_through_externals -PTPPL -PH:58 -PW:80 -IModel Run
+Input:   E:...sing-National\2_skim_through_externals\_skim_for_externals.s
+
+RUN PGM=HIGHWAY,2  MSG='Creating External Lookup Table by using Freeflow Skims'
+
+PILOT Stack Size = 108 bytes.
+................................................................................
+Page 2  (VOYAGER HIGHWAY) Model Run
+Wasatch Front Regional Council
+------------------------------------
+HIGHWAY (v.08/13/2019 [6.4.5 x64])  Wed Jul 14 11:22:57 2021
+
+    FILEI  NETI     = 'input\USTM_NAT_Merged.net'
+
+    FILEO  MATO     = 'skm_USTMExt.mtx', mo=1-3, name=time, distance, external, numext
+
+    FILEO PRINTO[1] = "ExternalLookup.csv"
+    FILEO PRINTO[2] = "ExternalNumIJPairs.csv"
+    FILEO PRINTO[3] = "ExternalMoreThan1.csv"
+
+    ;set HIGHWAY parameters
+    ZONES   = 8976
+    ZONEMSG = 10
+
+    ARRAY PairsThroughExternals = 30
+
+
+    PHASE=LINKREAD
+        ;recalculate distance (long external links should not be included because it
+        ;affects IXXI trip lengths)
+        _DIST = LI.DISTANCE
+
+        ;assign free flow time working variable
+        LW.TIME_ADJ = LI.TIME_ADJ
+
+    ENDPHASE
+
+
+    ;build time minimized paths
+    PHASE=ILOOP
+
+        IF (I=1) ;Headers for each CSV
+
+            PRINT PRINTO=1,
+                CSV=T,
+                LIST= "ODPair", "I", "J", "External", "Time", "Distance"
+
+            PRINT PRINTO=2,
+                CSV=T,
+                LIST= "External", "NumIJPairs"
+
+            PRINT PRINTO=3,
+                CSV=T,
+                LIST= "ODPair", "I", "J", "NumExt"
+
+        ENDIF
+
+        ;find time minimized paths and trace time and distance
+        PATHLOAD CONSOLIDATE=T, PATH=LW.TIME_ADJ,          ;use adjusted time to find path
+                mw[1]=PATHCOST, NOACCESS=90000,            ;zone-to-zone times
+                mw[2]=PATHTRACE(li.DISTANCE), NOACCESS=0,  ;zone-to-zone distances of best time path
+                mw[3]=PATHTRACE(li.USTM_EXT), NOACCESS=0,  ;a single link at external location has external number, so this matrix will return the external through which path goes
+                mw[4]=PATHTRACE(li.EXT)     , NOACCESS=0   ;each "exernal" link as a 1 value in this field, so any sum >1 will mean path is through more than one external
+Page 3  (VOYAGER HIGHWAY) Model Run
+Wasatch Front Regional Council
+------------------------------------
+        JLOOP
+
+            IF (I>30 & J>30 & mw[1][J]<>90000) ; create external lookup table for IX, XI I-J pairs (less than 30 are externals, 90000 means no path found (Hawaii))
+
+                _ONode  = LTRIM(STR(I, 6, 0))
+                _DNode  = LTRIM(STR(J, 6, 0))
+                _ODPair = _ONode + '_' + _DNode
+
+                IF ((J>8775 & I<=8775) | (I>8775 & J<=8775)) ;(I-USTM, J-National) or (I-National, J-USTM)
+
+                    IF (mw[4][J]=1) ;goes through only one external
+
+                        PRINT PRINTO=1,
+                            CSV=T,
+                            LIST= _ODPair, I, J, mw[3][J], mw[1][J], mw[2][J]
+
+                        _externalnum = mw[3][J]
+                        PairsThroughExternals[_externalnum] = PairsThroughExternals[_externalnum] + 1
+
+                    ELSEIF (mw[4][J]>1) ;goes through more than one external
+
+                        mw[3][J] = 0 ;set external value to zero, since value represents more than one external
+                        PRINT PRINTO=3,
+                            CSV=T,
+                            LIST= _ODPair, I, J, mw[4][J]
+
+                    ENDIF
+
+                ELSE
+
+                    mw[3][J] = 0 ;set to zero for all non IX, XI Pairs
+
+                ENDIF
+
+            ELSE
+
+                mw[3][J] = 0 ;set external value to zero for externals
+
+            ENDIF
+
+        ENDJLOOP
+
+        IF (I=ZONES) ;at the end of jloop
+
+            LOOP _iter=1, 30 ;export number of I-J pairs that go through each external
+
+                PRINT PRINTO=2,
+                    CSV=T,
+                    LIST= _iter, PairsThroughExternals[_iter]
+
+            ENDLOOP
+
+        ENDIF
+Page 4  (VOYAGER HIGHWAY) Model Run
+Wasatch Front Regional Council
+------------------------------------
+    ENDPHASE
+
+HIGHWAY Stack Size = 3090 bytes.
+................................................................................
+
+
+NETI input\USTM_NAT_Merged.net Opened
+NET PGM=CUBE   DATE=Tue Jul 13 09:02:18 2021
+ID=Model Run
+PAR Zones=9999    Nodes=213566    Links=412779    NodeRecs=169426    
+NVR:   N  X  Y  NODENAME=20  EXTERNAL  TAZID  CO_TAZID  SUBAREAID
+  SUBAREA_N  JOINT_TYPE  JOINT_NODE  OLD_JTNODE  SUB_TYPE  OLD_NODE
+  CO_FIPS  CO_NAME=13  CITY_NAME=25  DISTLRG  DLRG_NAME=30  DISTMED
+  DMED_NAME=29  DISTSML  DSML_NAME=29  AREATYPE  ATYPENAME=10  ATYPEGRP=5
+  HHPOP  TOTHH  HHSIZE  ALLEMP  RETL  FOOD  MANU  WSLE  OFFI  GVED  HLTH
+  OTHR  AGRI  MING  CONS  AVGINCOME  SA_TAZID  II_PER_P  II_PER_A  HBW_P
+  HBW_A  HBSHP_P  HBSHP_A  HBOTH_P  HBOTH_A  HBSC_PR_P  HBSC_PR_A
+  HBSC_SC_P  HBSC_SC_A  NHBW_P  NHBW_A  NHBNW_P  NHBNW_A  NHBW_ORGP
+  NHBNW_ORGP  REC_P  REC_A  IX_VEH_P  IX_VEH_A  IX_BUS_P  IX_BUS_A
+  IX_OTH_P  IX_OTH_A  IX_REC_P  IX_REC_A  IX_MD_P  IX_MD_A  XI_VEH_P
+  XI_VEH_A  XI_BUS_P  XI_BUS_A  XI_OTH_P  XI_OTH_A  XI_REC_P  XI_REC_A
+  XI_MD_P  XI_MD_A  TOTTRUCK_P  TOTTRUCK_A  SH_LT_P  SH_LT_A  SH_MD_P
+  SH_MD_A  SH_HV_P  SH_HV_A  USTM_NAT=4  ID  UT_EXT  COUNTRY=6  OLD_UT_EXT
+  USMT_NAT=1
+LVR:   A  B  DISTANCE  FT  USTM_NAT=4  TIME  SPEED  USTM_EXT  EXT  TIME_ADJ
+
+
+M(724): The NETI variables can not provide LinkClass directly, PHASE=LINKREAD is required.
+M(727): 412779 links for which default value for LinkClass was provided.
+M(727): 412779 links for which default value for T1 was provided.
+
+M(889): 16371 Consolidation Strings >= 4 comprised of 62419 links
+StingLng Cnt
+     2 51679
+     3 27818
+     4  9851
+     5  3702
+     6  1481
+     7   656
+     8   287
+     9   144
+    10    91
+    11    50
+    12    25
+    13    15
+    14    14
+    15     5
+    16     6
+    17     4
+    18     4
+    19     6
+    21     2
+    22     2
+    23     2Page 5  (VOYAGER HIGHWAY) Model Run
+Wasatch Front Regional Council
+------------------------------------
+    27     2
+    31     2
+    32     2
+    35     2
+    36     2
+    37     2
+    39     2
+    40     2
+    44     2
+    59     2
+    73     2
+    96     2
+
+skm_USTMExt.mtx Opened
+
+--------------------------------- Iteration 1 ----------------------------------
+
+
+Totals after Iteration 1 I loop:
+
+	MW[1]       : 311,643,024,336.16223   @J=I:                    --
+	MW[2]       :  16,719,733,377.76089   @J=I:                    --
+	MW[3]       :      52,656,370         @J=I:                    --
+	MW[4]       :       5,264,024         @J=I:                    --
+	MO.1.1      : 311,643,022,844.71991
+	MO.1.2      :  16,719,740,355.44999
+	MO.1.3      :      52,656,370      
+
+Variable Values at end of Iteration 1 I loop:
+
+	STORAGE     :             209.02544
+	_DIST       :               1.14964
+	_ONODE      : 8976
+	_DNODE      : 8976
+	_ODPAIR     : 8976_8976
+	_EXTERNALNUM:              23      
+	_ITER       :              31      
+
+Phase                    Seconds       Count
+------       -              --      
+LinkInput                     --           1
+PathBlding                134.00       8,976
+Tracing(untimed)              -- 322,274,304
+Estm Processing               --           1
+
+HIGHWAY  ReturnCode = 0  Elapsed Time = 00:10:49
+################################################################################
+
+
+VOYAGER  ReturnCode = 0  Elapsed Time = 00:10:49

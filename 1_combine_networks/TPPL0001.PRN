@@ -1,0 +1,242 @@
+Page 1  (VOYAGER PILOT) Model Run
+Wasatch Front Regional Council
+----------------------------------
+PILOT (v.08/13/2019 [6.4.5 x64]) Fri Jul 02 12:56:44 2021
+
+Args: B:\GitHub\TDM-Externals-Using-National\combine_networks\combine.s -SB:\GitHub\TDM-Externals-Using-National\combine_networks -PTPPL -PH:58 -PW:80 -IModel Run
+Input:   B:...tHub\TDM-Externals-Using-National\combine_networks\combine.s
+
+RUN PGM=NETWORK,0 MSG='Scan Node Numbering Schemes for Subareas'
+RUN PGM=NETWORK,4836 MSG='Combine Networks & Print Equivalencies'
+
+PILOT Stack Size = 190 bytes.
+................................................................................
+Page 2  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+------------------------------------
+NETWORK (v.08/13/2019 [6.4.5 x64])  Fri Jul 02 12:56:45 2021
+
+FILEI LINKI[1] = "BY_2019.NET"
+FILEI LINKI[2] = "Nation_NAD_2017-09-11_NoUtah.net"
+
+
+FILEO PRINTO[1] = "_Node_Number_Schemes.csv"
+FILEO PRINTO[2] = "_MaxUsedZones_forPython.txt"
+
+
+    ;USTM
+    PHASE=INPUT FILEI=ni.1
+        ;count total nodes
+        _USTM_Tot_Cnt = _USTM_Tot_Cnt + 1
+
+        ;count TAZ and find max TAZ number
+        if (SUB_TYPE=1)
+            _USTM_TAZ_Cnt = _USTM_TAZ_Cnt + 1
+            _USTM_TAZ_MAX = MAX(_USTM_TAZ_MAX, N)
+        endif
+
+        ;count externals and find min/max external numbers
+        if (SUB_TYPE=2)
+            _USTM_EXT_Cnt = _USTM_EXT_Cnt + 1
+            _USTM_EXT_Max = MAX(_USTM_EXT_Max, N)
+
+            if (_USTM_EXT_Min = 0)
+                _USTM_EXT_Min = N
+            else
+                _USTM_EXT_Min = Min(_USTM_EXT_Min, N)
+            endif
+        endif
+
+        ;count highway nodes
+        if (SUB_TYPE=0,3)  _USTM_HWY_Cnt = _USTM_HWY_Cnt  + 1
+    ENDPHASE
+
+
+    ;NATIONAL
+    PHASE=INPUT FILEI=ni.2
+        ;count total nodes
+        _NAT_Tot_Cnt = _NAT_Tot_Cnt + 1
+
+        ;count TAZ and find max TAZ number
+        if (N<=215)
+            _NAT_TAZ_Cnt = _NAT_TAZ_Cnt + 1
+            _NAT_TAZ_MAX = MAX(_NAT_TAZ_MAX, N)
+        ;count externals and find min/max external numbers
+        elseif (n<=1000)
+            _NAT_EXT_Cnt = _USTM_EXT_Cnt + 1
+            _NAT_EXT_MAX = MAX(_NAT_EXT_MAX, N)
+
+            if (_NAT_EXT_MIN = 0)
+                _NAT_EXT_MIN = NPage 3  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+------------------------------------
+            else
+                _NAT_EXT_MIN = Min(_NAT_EXT_MIN, N)
+            endif
+        ;count highway nodes
+        else
+            _NAT_HWY_Cnt = _NAT_HWY_Cnt  + 1
+    ENDPHASE
+
+    ;Log variables for further use
+    PHASE=SUMMARY
+
+        _RS_MaxExternal = 30
+
+        _NEW_ZONE = _RS_MaxExternal  +    ;USTM external range=1-30
+                    _USTM_TAZ_Cnt    +
+                    _NAT_TAZ_Cnt
+
+        _USTM_Highest  = MAX(_USTM_TAZ_MAX, _USTM_EXT_MAX)
+        _NAT_Highest   = MAX(_NAT_TAZ_MAX , _NAT_EXT_MAX )
+
+
+        ;set new TAZ variables for print file
+        _USTM_TAZ_first  = _RS_MaxExternal + 1
+        _USTM_TAZ_last   = _RS_MaxExternal + _USTM_TAZ_Cnt
+
+        _NAT_TAZ_first   = _USTM_TAZ_last  + 1
+        _NAT_TAZ_last    = _USTM_TAZ_last  + _NAT_TAZ_Cnt
+
+        ;set new Highway variables for print file
+        _USTM_Hwy_first  = 10000
+        _USTM_Hwy_last   = _USTM_HWY_first + _USTM_HWY_Cnt
+
+        _NAT_Hwy_first   = 80000
+        _NAT_Hwy_last    = _NAT_HWY_first  + _NAT_HWY_Cnt
+
+        ;print variables to output text file
+        PRINT PRINTO=1,
+            CSV=T,
+            FORM=10.0,
+            LIST='Highwway Network Node Schemes',
+                 '\n',
+                 '\nNew Statewide Node Scheme',
+                 '\nExternal Range', ' {RS_ExternalZones}',
+                 '\nFirst TAZ', _USTM_TAZ_first,
+                 '\nMax TAZ', _NEW_ZONE,
+                 '\n ',            'TAZ Low',       'TAZ High',      'Hwy Low',         'Hwy High',
+                 '\nUSTM Nodes',  _USTM_TAZ_first, _USTM_TAZ_last, _USTM_Hwy_first, _USTM_Hwy_last,
+                 '\nNAT Nodes' ,  _NAT_TAZ_first , _NAT_TAZ_last , _NAT_Hwy_first , _NAT_Hwy_last,
+                 '\n',
+                 '\n',
+                 '\nPrevious Network Node Schemes',
+                 '\n ',       'Max Int TAZ',   'Max Ext',       'UsedZones',     'TAZ Count',     'Ext Count',     'Hwy Count',     'Total Count',
+                 '\nUSTM',   _USTM_TAZ_MAX,  _USTM_EXT_Max,  _USTM_Highest,  _USTM_TAZ_Cnt,  _USTM_EXT_Cnt,  _USTM_HWY_Cnt,  _USTM_Tot_Cnt,
+                 '\nNAT' ,   _NAT_TAZ_MAX ,  _NAT_EXT_Max ,  _NAT_Highest ,  _NAT_TAZ_Cnt ,  _NAT_EXT_Cnt ,  _NAT_HWY_Cnt ,  _NAT_Tot_Cnt,Page 4  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+------------------------------------
+                 '\n',
+                 '\n'
+
+
+        ;print variables to output text file
+        PRINT PRINTO=2,
+            FORM=6.0,
+            LIST='# 03_Update_Link_Node.py  script input',
+                 '\nUsedZones =', _NEW_ZONE
+
+
+        ;log variables to .VAR file
+        LOG VAR = _USTM_Highest
+        LOG VAR = _USTM_TAZ_MAX
+        LOG VAR = _USTM_EXT_Min
+        LOG VAR = _USTM_EXT_Max
+        LOG VAR = _USTM_TAZ_Cnt
+        LOG VAR = _USTM_EXT_Cnt
+        LOG VAR = _USTM_HWY_Cnt
+
+        LOG VAR = _NAT_Highest
+        LOG VAR = _NAT_TAZ_MAX
+        LOG VAR = _NAT_EXT_Min
+        LOG VAR = _NAT_EXT_Max
+        LOG VAR = _NAT_TAZ_Cnt
+        LOG VAR = _NAT_EXT_Cnt
+        LOG VAR = _NAT_HWY_Cnt
+
+        LOG VAR = _NEW_ZONE
+
+    ENDPHASE
+
+
+F(081): IF #5 does not have matching ENDIF
+
+F(094): Misplaced ELSE in control stream.
+F(206): There are 6 IFs and 5 ENDIFs.
+
+F(205): IF(#5) has missing ENDIF.
+F(204): IF(#5) has conflict with PROCESS(#3).
+
+NETWORK Stack Size = 6024 bytes.
+................................................................................
+
+
+
+
+BY_2019.NET   (VOYAGER):
+
+NET PGM=CUBE   DATE=Fri Jul 02 12:33:40 2021
+ID= 
+PAR Zones=8775    Nodes=71091     Links=75513     NodeRecs=35658     
+NVR 92    N    X    Y    NODENAME=20    EXTERNAL    TAZID    CO_TAZID
+    SUBAREAID    SUBAREA_N    JOINT_TYPE    JOINT_NODE    OLD_JTNODEPage 5  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+------------------------------------
+    SUB_TYPE    OLD_NODE    CO_FIPS    CO_NAME=13    CITY_NAME=25    DISTLRG
+    DLRG_NAME=30    DISTMED    DMED_NAME=29    DISTSML    DSML_NAME=29
+    AREATYPE    ATYPENAME=10    ATYPEGRP=5    HHPOP    TOTHH    HHSIZE
+    ALLEMP    RETL    FOOD    MANU    WSLE    OFFI    GVED    HLTH    OTHR
+    AGRI    MING    CONS    AVGINCOME    SA_TAZID    II_PER_P    II_PER_A
+    HBW_P    HBW_A    HBSHP_P    HBSHP_A    HBOTH_P    HBOTH_A    HBSC_PR_P
+    HBSC_PR_A    HBSC_SC_P    HBSC_SC_A    NHBW_P    NHBW_A    NHBNW_P
+    NHBNW_A    NHBW_ORGP    NHBNW_ORGP    REC_P    REC_A    IX_VEH_P
+    IX_VEH_A    IX_BUS_P    IX_BUS_A    IX_OTH_P    IX_OTH_A    IX_REC_P
+    IX_REC_A    IX_MD_P    IX_MD_A    XI_VEH_P    XI_VEH_A    XI_BUS_P
+    XI_BUS_A    XI_OTH_P    XI_OTH_A    XI_REC_P    XI_REC_A    XI_MD_P
+    XI_MD_A    TOTTRUCK_P    TOTTRUCK_A    SH_LT_P    SH_LT_A    SH_MD_P
+    SH_MD_A    SH_HV_P    SH_HV_A    USTM_NAT=4
+LVR 99    A    B    STREET=31    DISTANCE    LANES    TWLTL    PL    FT
+    FTCLASS=18    TRK_RSTRCT    ONEWAY    COUPLET1WY    SELGRP    REL_LN
+    ANGLE    DIRECTION=2    IB_OB=2    CPLT_SFAC    CPLT_CFAC    SFAC    CFAC
+    CURVERATIO    LINKID=11    SEGID=11    TAZID    CO_TAZID    SUBAREAID
+    SUBAREA_A    SUBAREA_B    SUB_TYPE_L    CONCT_SA    CO_FIPS    CO_NAME=13
+    CITY_NAME=25    DISTLRG    DLRG_NAME=30    DISTMED    DMED_NAME=29
+    DISTSML    DSML_NAME=29    AREATYPE    ATYPENAME=10    ATYPEGRP=5
+    FF_RAMPPEN    AM_RAMPPEN    MD_RAMPPEN    PM_RAMPPEN    EV_RAMPPEN
+    CAP1HR1LN    AM_CAP    MD_CAP    PM_CAP    EV_CAP    FF_SPD    AM_SPD
+    MD_SPD    PM_SPD    EV_SPD    FF_TIME    AM_TIME    MD_TIME    PM_TIME
+    EV_TIME    AM_SA_TOT    AM_SA_WRK    AM_SA_PER    AM_SA_CV    AM_SA_MD
+    AM_SA_HV    AM_SA_EXLH    MD_SA_TOT    MD_SA_WRK    MD_SA_PER    MD_SA_CV
+    MD_SA_MD    MD_SA_HV    MD_SA_EXLH    PM_SA_TOT    PM_SA_WRK    PM_SA_PER
+    PM_SA_CV    PM_SA_MD    PM_SA_HV    PM_SA_EXLH    EV_SA_TOT    EV_SA_WRK
+    EV_SA_PER    EV_SA_CV    EV_SA_MD    EV_SA_HV    EV_SA_EXLH    DY_SA_TOT
+    DY_SA_WRK    DY_SA_PER    DY_SA_CV    DY_SA_MD    DY_SA_HV    DY_SA_EXLH
+    USTM_NAT=4
+
+
+
+
+Nation_NAD_2017-09-11_NoUtah.net   (VOYAGER):
+
+NET PGM=CUBE   DATE=Fri Jul 02 12:25:13 2021
+ID= 
+PAR Zones=284     Nodes=145311    Links=337228    NodeRecs=133753    
+NVR 8    N    X    ID    UT_EXT    COUNTRY=6    Y    OLD_UT_EXT
+    USMT_NAT=1
+LVR 68    A    B    ID    LENGTH    DIR    ID1    ID11    LENGTH1    DIR1
+    RECTYPE=1    VERSION=3    ORIGID    STFIPS    STATE=2    CTFIPS    SOURCE=1
+    LGURB    SMURB    SIGN1=6    SIGNT1=1    SIGNN1=4    SIGNQ1=1    SIGN2=6
+    SIGNT2=1    SIGNN2=4    SIGNQ2=1    SIGN3=6    SIGNT3=1    SIGNN3=4
+    SIGNQ3=1    LNAME=30    MILES    KM    FCLASS    RUCODE    STATUS    NHS
+    NN    TRK_RTE    LCV_TYPE    OID_    ID_1    VERSION_1=3    AADT07
+    AADTT07    FAF07    NONFAF07    AADT40    AADTT40    FAF40    NONFAF40
+    CAP07    SF07    VCR07    SPEED07    DELAY07    CAP40    SF40    VCR40
+    SPEED40    DELAY40    FROM_ID    TO_ID    UT_FLAG    COUNTRY=6    TIME
+    EXTPATHFLAG    USTM_NAT=3
+
+
+NETWORK  ReturnCode = 2  Elapsed Time = 00:00:00
+################################################################################
+
+
+VOYAGER  ReturnCode = 2  Elapsed Time = 00:00:01

@@ -1,0 +1,966 @@
+Page 1  (VOYAGER PILOT) Model Run
+Wasatch Front Regional Council
+----------------------------------
+PILOT (v.08/13/2019 [6.4.5 x64]) Fri Jul 02 13:00:28 2021
+
+Args: B:\GitHub\TDM-Externals-Using-National\combine_networks\combine.s -SB:\GitHub\TDM-Externals-Using-National\combine_networks -PTPPL -PH:58 -PW:80 -IModel Run
+Input:   B:...tHub\TDM-Externals-Using-National\combine_networks\combine.s
+
+RUN PGM=NETWORK,0 MSG='Scan Node Numbering Schemes for Subareas'
+RUN PGM=NETWORK,4836 MSG='Combine Networks & Print Equivalencies'
+
+PILOT Stack Size = 190 bytes.
+................................................................................
+Page 2  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+------------------------------------
+NETWORK (v.08/13/2019 [6.4.5 x64])  Fri Jul 02 13:00:28 2021
+
+FILEI LINKI[1] = "BY_2019.NET"
+FILEI LINKI[2] = "Nation_NAD_2017-09-11_NoUtah.net"
+
+
+FILEO PRINTO[1] = "_Node_Number_Schemes.csv"
+FILEO PRINTO[2] = "_MaxUsedZones_forPython.txt"
+
+
+    ;USTM
+    PHASE=INPUT FILEI=ni.1
+        ;count total nodes
+        _USTM_Tot_Cnt = _USTM_Tot_Cnt + 1
+
+        ;count TAZ and find max TAZ number
+        if (SUB_TYPE=1)
+            _USTM_TAZ_Cnt = _USTM_TAZ_Cnt + 1
+            _USTM_TAZ_MAX = MAX(_USTM_TAZ_MAX, N)
+        endif
+
+        ;count externals and find min/max external numbers
+        if (SUB_TYPE=2)
+            _USTM_EXT_Cnt = _USTM_EXT_Cnt + 1
+            _USTM_EXT_Max = MAX(_USTM_EXT_Max, N)
+
+            if (_USTM_EXT_Min = 0)
+                _USTM_EXT_Min = N
+            else
+                _USTM_EXT_Min = Min(_USTM_EXT_Min, N)
+            endif
+        endif
+
+        ;count highway nodes
+        if (SUB_TYPE=0,3)  _USTM_HWY_Cnt = _USTM_HWY_Cnt  + 1
+    ENDPHASE
+
+
+    ;NATIONAL
+    PHASE=INPUT FILEI=ni.2
+        ;count total nodes
+        _NAT_Tot_Cnt = _NAT_Tot_Cnt + 1
+
+        ;count TAZ and find max TAZ number
+        if (N<=215)
+            _NAT_TAZ_Cnt = _NAT_TAZ_Cnt + 1
+            _NAT_TAZ_MAX = MAX(_NAT_TAZ_MAX, N)
+        ;count externals and find min/max external numbers
+        elseif (n<=1000)
+            _NAT_EXT_Cnt = _USTM_EXT_Cnt + 1
+            _NAT_EXT_MAX = MAX(_NAT_EXT_MAX, N)
+
+            if (_NAT_EXT_MIN = 0)
+                _NAT_EXT_MIN = NPage 3  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+------------------------------------
+            else
+                _NAT_EXT_MIN = Min(_NAT_EXT_MIN, N)
+            endif
+        ;count highway nodes
+        else
+            _NAT_HWY_Cnt = _NAT_HWY_Cnt  + 1
+        endif
+    ENDPHASE
+
+    ;Log variables for further use
+    PHASE=SUMMARY
+
+        _RS_MaxExternal = 30
+
+        _NEW_ZONE = _RS_MaxExternal  +    ;USTM external range=1-30
+                    _USTM_TAZ_Cnt    +
+                    _NAT_TAZ_Cnt
+
+        _USTM_Highest  = MAX(_USTM_TAZ_MAX, _USTM_EXT_MAX)
+        _NAT_Highest   = MAX(_NAT_TAZ_MAX , _NAT_EXT_MAX )
+
+
+        ;set new TAZ variables for print file
+        _USTM_TAZ_first  = _RS_MaxExternal + 1
+        _USTM_TAZ_last   = _RS_MaxExternal + _USTM_TAZ_Cnt
+
+        _NAT_TAZ_first   = _USTM_TAZ_last  + 1
+        _NAT_TAZ_last    = _USTM_TAZ_last  + _NAT_TAZ_Cnt
+
+        ;set new Highway variables for print file
+        _USTM_Hwy_first  = 10000
+        _USTM_Hwy_last   = _USTM_HWY_first + _USTM_HWY_Cnt
+
+        _NAT_Hwy_first   = 80000
+        _NAT_Hwy_last    = _NAT_HWY_first  + _NAT_HWY_Cnt
+
+        ;print variables to output text file
+        PRINT PRINTO=1,
+            CSV=T,
+            FORM=10.0,
+            LIST='Highwway Network Node Schemes',
+                 '\n',
+                 '\nNew Statewide Node Scheme',
+                 '\nExternal Range', RS_MaxExternal,
+                 '\nFirst TAZ', _USTM_TAZ_first,
+                 '\nMax TAZ', _NEW_ZONE,
+                 '\n ',            'TAZ Low',       'TAZ High',      'Hwy Low',         'Hwy High',
+                 '\nUSTM Nodes',  _USTM_TAZ_first, _USTM_TAZ_last, _USTM_Hwy_first, _USTM_Hwy_last,
+                 '\nNAT Nodes' ,  _NAT_TAZ_first , _NAT_TAZ_last , _NAT_Hwy_first , _NAT_Hwy_last,
+                 '\n',
+                 '\n',
+                 '\nPrevious Network Node Schemes',
+                 '\n ',       'Max Int TAZ',   'Max Ext',       'UsedZones',     'TAZ Count',     'Ext Count',     'Hwy Count',     'Total Count',
+                 '\nUSTM',   _USTM_TAZ_MAX,  _USTM_EXT_Max,  _USTM_Highest,  _USTM_TAZ_Cnt,  _USTM_EXT_Cnt,  _USTM_HWY_Cnt,  _USTM_Tot_Cnt,Page 4  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+------------------------------------
+                 '\nNAT' ,   _NAT_TAZ_MAX ,  _NAT_EXT_Max ,  _NAT_Highest ,  _NAT_TAZ_Cnt ,  _NAT_EXT_Cnt ,  _NAT_HWY_Cnt ,  _NAT_Tot_Cnt,
+                 '\n',
+                 '\n'
+
+
+        ;print variables to output text file
+        PRINT PRINTO=2,
+            FORM=6.0,
+            LIST='# 03_Update_Link_Node.py  script input',
+                 '\nUsedZones =', _NEW_ZONE
+
+
+        ;log variables to .VAR file
+        LOG VAR = _USTM_Highest
+        LOG VAR = _USTM_TAZ_MAX
+        LOG VAR = _USTM_EXT_Min
+        LOG VAR = _USTM_EXT_Max
+        LOG VAR = _USTM_TAZ_Cnt
+        LOG VAR = _USTM_EXT_Cnt
+        LOG VAR = _USTM_HWY_Cnt
+
+        LOG VAR = _NAT_Highest
+        LOG VAR = _NAT_TAZ_MAX
+        LOG VAR = _NAT_EXT_Min
+        LOG VAR = _NAT_EXT_Max
+        LOG VAR = _NAT_TAZ_Cnt
+        LOG VAR = _NAT_EXT_Cnt
+        LOG VAR = _NAT_HWY_Cnt
+
+        LOG VAR = _NEW_ZONE
+
+    ENDPHASE
+
+
+NETWORK Stack Size = 6066 bytes.
+................................................................................
+
+
+
+
+BY_2019.NET   (VOYAGER):
+
+NET PGM=CUBE   DATE=Fri Jul 02 12:33:40 2021
+ID= 
+PAR Zones=8775    Nodes=71091     Links=75513     NodeRecs=35658     
+NVR 92    N    X    Y    NODENAME=20    EXTERNAL    TAZID    CO_TAZID
+    SUBAREAID    SUBAREA_N    JOINT_TYPE    JOINT_NODE    OLD_JTNODE
+    SUB_TYPE    OLD_NODE    CO_FIPS    CO_NAME=13    CITY_NAME=25    DISTLRG
+    DLRG_NAME=30    DISTMED    DMED_NAME=29    DISTSML    DSML_NAME=29
+    AREATYPE    ATYPENAME=10    ATYPEGRP=5    HHPOP    TOTHH    HHSIZE
+    ALLEMP    RETL    FOOD    MANU    WSLE    OFFI    GVED    HLTH    OTHR
+    AGRI    MING    CONS    AVGINCOME    SA_TAZID    II_PER_P    II_PER_A
+    HBW_P    HBW_A    HBSHP_P    HBSHP_A    HBOTH_P    HBOTH_A    HBSC_PR_P
+    HBSC_PR_A    HBSC_SC_P    HBSC_SC_A    NHBW_P    NHBW_A    NHBNW_PPage 5  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+------------------------------------
+    NHBNW_A    NHBW_ORGP    NHBNW_ORGP    REC_P    REC_A    IX_VEH_P
+    IX_VEH_A    IX_BUS_P    IX_BUS_A    IX_OTH_P    IX_OTH_A    IX_REC_P
+    IX_REC_A    IX_MD_P    IX_MD_A    XI_VEH_P    XI_VEH_A    XI_BUS_P
+    XI_BUS_A    XI_OTH_P    XI_OTH_A    XI_REC_P    XI_REC_A    XI_MD_P
+    XI_MD_A    TOTTRUCK_P    TOTTRUCK_A    SH_LT_P    SH_LT_A    SH_MD_P
+    SH_MD_A    SH_HV_P    SH_HV_A    USTM_NAT=4
+LVR 99    A    B    STREET=31    DISTANCE    LANES    TWLTL    PL    FT
+    FTCLASS=18    TRK_RSTRCT    ONEWAY    COUPLET1WY    SELGRP    REL_LN
+    ANGLE    DIRECTION=2    IB_OB=2    CPLT_SFAC    CPLT_CFAC    SFAC    CFAC
+    CURVERATIO    LINKID=11    SEGID=11    TAZID    CO_TAZID    SUBAREAID
+    SUBAREA_A    SUBAREA_B    SUB_TYPE_L    CONCT_SA    CO_FIPS    CO_NAME=13
+    CITY_NAME=25    DISTLRG    DLRG_NAME=30    DISTMED    DMED_NAME=29
+    DISTSML    DSML_NAME=29    AREATYPE    ATYPENAME=10    ATYPEGRP=5
+    FF_RAMPPEN    AM_RAMPPEN    MD_RAMPPEN    PM_RAMPPEN    EV_RAMPPEN
+    CAP1HR1LN    AM_CAP    MD_CAP    PM_CAP    EV_CAP    FF_SPD    AM_SPD
+    MD_SPD    PM_SPD    EV_SPD    FF_TIME    AM_TIME    MD_TIME    PM_TIME
+    EV_TIME    AM_SA_TOT    AM_SA_WRK    AM_SA_PER    AM_SA_CV    AM_SA_MD
+    AM_SA_HV    AM_SA_EXLH    MD_SA_TOT    MD_SA_WRK    MD_SA_PER    MD_SA_CV
+    MD_SA_MD    MD_SA_HV    MD_SA_EXLH    PM_SA_TOT    PM_SA_WRK    PM_SA_PER
+    PM_SA_CV    PM_SA_MD    PM_SA_HV    PM_SA_EXLH    EV_SA_TOT    EV_SA_WRK
+    EV_SA_PER    EV_SA_CV    EV_SA_MD    EV_SA_HV    EV_SA_EXLH    DY_SA_TOT
+    DY_SA_WRK    DY_SA_PER    DY_SA_CV    DY_SA_MD    DY_SA_HV    DY_SA_EXLH
+    USTM_NAT=4
+
+
+
+
+Nation_NAD_2017-09-11_NoUtah.net   (VOYAGER):
+
+NET PGM=CUBE   DATE=Fri Jul 02 12:25:13 2021
+ID= 
+PAR Zones=284     Nodes=145311    Links=337228    NodeRecs=133753    
+NVR 8    N    X    ID    UT_EXT    COUNTRY=6    Y    OLD_UT_EXT
+    USMT_NAT=1
+LVR 68    A    B    ID    LENGTH    DIR    ID1    ID11    LENGTH1    DIR1
+    RECTYPE=1    VERSION=3    ORIGID    STFIPS    STATE=2    CTFIPS    SOURCE=1
+    LGURB    SMURB    SIGN1=6    SIGNT1=1    SIGNN1=4    SIGNQ1=1    SIGN2=6
+    SIGNT2=1    SIGNN2=4    SIGNQ2=1    SIGN3=6    SIGNT3=1    SIGNN3=4
+    SIGNQ3=1    LNAME=30    MILES    KM    FCLASS    RUCODE    STATUS    NHS
+    NN    TRK_RTE    LCV_TYPE    OID_    ID_1    VERSION_1=3    AADT07
+    AADTT07    FAF07    NONFAF07    AADT40    AADTT40    FAF40    NONFAF40
+    CAP07    SF07    VCR07    SPEED07    DELAY07    CAP40    SF40    VCR40
+    SPEED40    DELAY40    FROM_ID    TO_ID    UT_FLAG    COUNTRY=6    TIME
+    EXTPATHFLAG    USTM_NAT=3
+
+
+W(658): PRINT (#1) has undefined LIST fields which will be printed as ?:
+
+W(700): Network Variables (name does NOT begin with _) may be
+        referenced only in NODEMERGE and LINKMERGE Phases.
+W(701): Temporary Variables (_xxxx) may be referenced in any phase.
+
+
+Begin PROCESS PHASE INPUTPage 6  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+------------------------------------
+    35658 records read from NODEI[1]: BY_2019.NET
+   133753 records read from NODEI[2]: Nation_NAD_2017-09-11_NoUtah.net
+End   PROCESS PHASE INPUT
+
+
+Begin PROCESS PHASE NODEMERGE
+      35,658 records merged from NODEI[1]: N1.123176
+     133,753 records merged from NODEI[2]: N2.123176
+     144,059 data base records.Page 7  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+------------------------------------
+
+Variable      Obs<>0               Total           Ave           Min            Max           RMS  
+--------      ------               -----           ---           ---            ---           ---  
+N            144,059                  --            --          1        145,311               --
+X            144,059  280,625,968,807.81  1,947,993.31   -888,000      3,930,000     2,367,977.35
+Y            144,059  656,814,219,976.45  4,559,341.8   3,062,395.1    6,592,540.42  4,590,990.16
+NODENAME         165                                    (1940 W N)  (Woods Cr)
+EXTERNAL          80              133             1.66          1              2             1.73
+TAZID         35,658      166,278,701         4,663.15          1          8,775         5,133.13
+CO_TAZID      35,658    9,431,246,456       264,491.74         -1        570,420       339,299.85
+SUBAREAID     25,987           38,371             1.48          1              4             1.73
+SUBAREA_N     35,658      357,729,445        10,032.24          1         31,411        13,396.51
+JOINT_TYPE        64              140             2.19          1              4             2.52
+JOINT_NODE         3           20,871         6,957         1,455         13,004         8,412.98
+OLD_JTNODE         3           20,871         6,957         1,455         13,004         8,412.98
+SUB_TYPE       8,803            8,892             1.01          1              3             1.02
+CO_FIPS       35,658        1,245,376            34.93         -1             57            38.8 
+CO_NAME       35,658                                    (BEAVER  )  (WEBER   )
+CITY_NAME     34,825                                    (Alpine  )  (Zion Nat)
+DISTLRG       35,244          232,132             6.59         -1             17             8.49
+DLRG_NAME     35,412                                    (CACHE   )  (West Box)
+DISTMED       35,245          650,177            18.45         -1             46            23.79
+DMED_NAME     35,412                                    (AF-PG   )  (Woodland)
+DISTSML       35,245        7,075,307           200.75         -1            571           284.43
+DSML_NAME     35,412                                    (AF-PG   )  (Woodland)
+AREATYPE      35,658           82,752             2.32          1              5             2.6 
+ATYPENAME     35,658                                    (CBD-like)  (Urban   )
+ATYPEGRP      35,658                                    (Rural   )  (Urban   )
+HHPOP          7,141        3,216,549           450.43          1          7,411           842.7 
+TOTHH          7,123        1,100,699           154.53          1          2,841           285.53
+HHSIZE         7,142           20,482.72          2.87          0.64          11.84          2.98
+ALLEMP         7,448        2,113,413           283.76          1         21,282           876.61
+RETL           3,324          212,581            63.95          1          2,408           181.29
+FOOD           2,863          122,254            42.7           1          1,962           108.49
+MANU           2,497          146,693            58.75          1          5,669           254.35
+WSLE           3,038          133,382            43.9           1          7,886           228.14
+OFFI           3,455          213,381            61.76          1          3,604           233.44
+GVED           3,790          336,672            88.83          1         18,895           551.31
+HLTH           3,199          173,554            54.25          1          7,505           250.2 
+OTHR           4,403          506,892           115.12          1          5,918           341.57
+AGRI           2,059           17,618             8.56          1            333            18.05
+MING             245           16,834            68.71          1          1,709           161.92
+CONS           5,508          142,784            25.92          1          2,292            74.18
+AVGINCOME      8,737      476,777,507        54,569.93     13,067        208,873        57,436.19
+SA_TAZID       5,205        5,069,932           974.05          1          2,873         1,271.66
+II_PER_P       7,546       11,776,087.83      1,560.57          0.01      27,065.45      2,878.88
+II_PER_A       7,588       11,776,087.9       1,551.94          0.16      80,609.92      3,689.87
+HBW_P          7,139        2,080,186.89        291.38          0.29       5,125.51        551.36
+HBW_A          5,264        2,080,186.65        395.17          0.16      24,119.43      1,142.8 
+HBSHP_P        7,139        1,173,158.85        164.33          0.16       2,528.61        314.34
+HBSHP_A        4,307        1,173,158.62        272.38          0.24      15,867.18        831.76
+HBOTH_P        7,139        4,652,288.05        651.67          0.61      11,521.77      1,230.09
+HBOTH_A        7,562        4,652,288.13        615.22          0.08      49,528.26      1,499.43
+HBSC_PR_P      7,139          431,369.51         60.42          0.03       1,243.04        120.79Page 8  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+------------------------------------
+HBSC_PR_A        666          431,370.14        647.7           1.13       3,095.43        763.17
+HBSC_SC_P      7,139          368,875.76         51.67          0.03       1,030.91        100.09
+HBSC_SC_A        425          368,875.6         867.94          1.26       4,565.78      1,253.81
+NHBW_P         6,793          964,339.28        141.96          0.01       6,694.79        374.95
+NHBW_A         6,793          964,339.28        141.96          0.01       6,694.79        374.95
+NHBNW_P        7,343        2,105,869.49        286.79          0.01      14,991.02        717.43
+NHBNW_A        7,343        2,105,869.49        286.79          0.01      14,991.02        717.43
+NHBW_ORGP      7,139          964,339.76        135.08          0.17       2,200.77        253.02
+NHBNW_ORGP     7,139        2,105,869.84        294.98          0.36       4,602.32        527.71
+REC_P          6,733            5,344.75          0.79          0.01          13.14          1.46
+REC_A             53            5,344.75        100.84          4.87         816           172.23
+IX_VEH_P       7,739           28,328.48          3.66          0.01          54.45          6.43
+IX_VEH_A          27           28,322.3       1,048.97         79.4        3,524.8       1,375.58
+IX_BUS_P       6,883            4,990.21          0.73          0.01          32.65          1.6 
+IX_BUS_A          27            4,987.6         184.73         13.5          757           258.23
+IX_OTH_P       7,084           10,453.43          1.48          0.01          24.81          2.75
+IX_OTH_A          27           10,451           387.07         30.3        1,056.6         499.45
+IX_REC_P       6,965            7,349.74          1.06          0.01          18.07          1.97
+IX_REC_A          27            7,352.6         272.32         20.6          968           355.73
+IX_MD_P        7,489            5,535.1           0.74          0.01          30.07          1.64
+IX_MD_A           27            5,531.1         204.86         15            824.5         299.57
+XI_VEH_P          27           28,322.3       1,048.97         79.4        3,524.8       1,375.58
+XI_VEH_A       7,586           28,331.6           3.73          0.01       1,492.02         31.95
+XI_BUS_P          27            4,987.6         184.73         13.5          757           258.23
+XI_BUS_A       5,690            4,989.14          0.88          0.01          56.13          2.76
+XI_OTH_P          27           10,451           387.07         30.3        1,056.6         499.45
+XI_OTH_A       7,233           10,453.33          1.45          0.01          57.9           3.03
+XI_REC_P          27            7,352.6         272.32         20.6          968           355.73
+XI_REC_A          14            7,352.59        525.18         11.82       1,490.64        728.84
+XI_MD_P           27            5,531.1         204.86         15            824.5         299.57
+XI_MD_A        7,488            5,536.54          0.74          0.01          30.07          1.64
+TOTTRUCK_P     7,818        2,478,632.25        317.04          0.07      12,508.01        687.54
+TOTTRUCK_A     7,818        2,478,632.25        317.04          0.07      12,508.01        687.54
+SH_LT_P        7,818          905,826.32        115.86          0.03       3,523.5         242   
+SH_LT_A        7,818          905,826.32        115.86          0.03       3,523.5         242   
+SH_MD_P        7,818        1,079,340.8         138.06          0.03       5,867.22        313.27
+SH_MD_A        7,818        1,079,340.8         138.06          0.03       5,867.22        313.27
+SH_HV_P        7,818          493,465.13         63.12          0.01       3,117.29        139.89
+SH_HV_A        7,818          493,465.13         63.12          0.01       3,117.29        139.89
+USTM_NAT      35,658                                    (USTM    )  (USTM    )
+ID           133,452  894,159,898,702     6,700,236.03    296,538     12,618,869     7,606,504.84
+UT_EXT            55              350             6.36         -1             27            11.25
+COUNTRY           27                                    (Mexico  )  (Mexico  )
+OLD_UT_EXT        27          112,860         4,180         4,167          4,193         4,180.01
+
+      Obs = 0:  OLD_NODE  USMT_NAT
+Page 9  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+------------------------------------
+_Variables with values:
+
+_ZONES                   8,775      
+_USTM_TOT_CNT           35,658      
+_USTM_TAZ_CNT            8,745      
+_USTM_TAZ_MAX            8,775      
+_USTM_EXT_CNT               27      
+_USTM_EXT_MAX               27      
+_USTM_EXT_MIN                1      
+_USTM_HWY_CNT           26,886      
+_NAT_TOT_CNT           133,753      
+_NAT_TAZ_CNT               186      
+_NAT_TAZ_MAX               215      
+_NAT_EXT_CNT                28      
+_NAT_EXT_MAX               284      
+_NAT_EXT_MIN               216      
+_NAT_HWY_CNT           133,498      
+
+End   PROCESS PHASE NODEMERGE
+
+
+Begin PROCESS PHASE LINKMERGE
+      75,513 records merged from NETI[1]: BY_2019.NET
+     409,664 data base records.Page 10  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+-------------------------------------
+
+Variable       Obs<>0                   Total               Ave         Min               Max               RMS  
+--------       ------                   -----               ---         ---               ---               ---  
+A             409,664                      --  --                      1           145,311                   --
+B             409,664                      --  --                      1           145,311                   --
+STREET         75,262                                            (0       )  (wrong al)
+DISTANCE       75,511               46,125.34  34                      0                36.2               1.61
+LANES          75,513              269,366                 3.57        1                 7                 4.54
+TWLTL           2,149                2,149                 1           1                 1                 1   
+PL                110                  110                 1           1                 1                 1   
+FT             75,513              366,110                 4.85        1                42                 9.69
+FTCLASS        75,513                                            (Centroid)  (Ramp    )
+TRK_RSTRCT         64                   64                 1           1                 1                 1   
+ONEWAY         75,513              145,917                 1.93        1                 2                 1.95
+COUPLET1WY        191                  191                 1           1                 1                 1   
+ANGLE          75,188           14,047,234.4   4                       0.1             360               214.66
+DIRECTION      75,513                                            (EB      )  (WB      )
+IB_OB          74,259                                            (IB      )  (OB      )
+CPLT_SFAC         191                  200.55  55                      1.05              1.05              1.05
+CPLT_CFAC         191                  229.2   2                       1.2               1.2               1.2 
+SFAC              857                  838.34  34                      0.7               1.3               0.99
+CFAC              208                  214.39  39                      0.83              1.2               1.04
+CURVERATIO     75,513               76,323.56  56                      1                 8.75              1.01
+LINKID         75,513                                            (10000_3 )  (9_13342 )
+SEGID          39,859                                            (0       )  (WFRC_821)
+TAZID          75,513          349,756,392             4,631.74        1             8,775             5,117.13
+CO_TAZID       75,513       19,127,674,106           253,303.06       -1           570,420           330,320.64
+SUBAREAID      54,307               81,617                 1.5         1                 4                 1.76
+SUBAREA_A      75,513          706,086,417             9,350.53        1            31,345            12,275.03
+SUBAREA_B      75,513          706,166,839             9,351.59        1            31,345            12,275.94
+SUB_TYPE_L         54                  162                 3           3                 3                 3   
+CONCT_SA          110                  330                 3           3                 3                 3   
+CO_FIPS        75,513            2,571,265                34.05       -1                57                38.16
+CO_NAME        75,513                                            (BEAVER  )  (WEBER   )
+CITY_NAME      73,672                                            (Alpine  )  (Zion Nat)
+DISTLRG        75,057              471,025                 6.28       -1                17                 8.18
+DLRG_NAME      75,250                                            (CACHE   )  (West Box)
+DISTMED        75,059            1,315,646                17.53       -1                46                22.88
+DMED_NAME      75,250                                            (AF-PG   )  (Woodland)
+DISTSML        75,059           14,283,044               190.29       -1               571               273.16
+DSML_NAME      75,250                                            (AF-PG   )  (Woodland)
+AREATYPE       75,513              182,430                 2.42        1                 5                 2.69
+ATYPENAME      75,513                                            (CBD-like)  (Urban   )
+ATYPEGRP       75,513                                            (Rural   )  (Urban   )
+FF_RAMPPEN        210                   52.5   5                       0.25              0.25              0.25
+AM_RAMPPEN        210                   52.5   5                       0.25              0.25              0.25
+MD_RAMPPEN        210                   52.5   5                       0.25              0.25              0.25
+PM_RAMPPEN        210                   52.5   5                       0.25              0.25              0.25
+EV_RAMPPEN        210                   52.5   5                       0.25              0.25              0.25
+CAP1HR1LN      73,940          320,453,823.94  94                    300            11,000             6,230.95
+AM_CAP         73,940        6,098,628,393.1   1                     900           231,000           130,076.12
+MD_CAP         73,940       12,197,254,735.22  22                  1,800           462,000           260,152.23
+PM_CAP         73,940        6,098,628,393.1   1                     900           231,000           130,076.12
+EV_CAP         73,940       24,394,505,986.43  43                  3,600           924,000           520,304.46Page 11  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+-------------------------------------
+FF_SPD         75,513            2,441,643.2   2                      13.6              80                34.96
+AM_SPD         75,513            2,407,906.1   1                       5.9              80                34.49
+MD_SPD         75,513            2,418,912.6   6                       9                80                34.65
+PM_SPD         75,513            2,354,780.5   5                       3.9              80                33.77
+EV_SPD         75,513            2,440,702.9   9                      13.6              80                34.95
+FF_TIME        75,376               95,687                 1.27        0.01            144.78              4.12
+AM_TIME        75,376               96,106.07  07                      0.01            144.78              4.12
+MD_TIME        75,376               95,952.62  62                      0.01            144.78              4.12
+PM_TIME        75,376               96,906.53  53                      0.01            144.78              4.12
+EV_TIME        75,376               95,700.94  94                      0.01            144.78              4.12
+AM_SA_TOT      48,567           42,379,738.71  71                      0.1          22,987             2,088.23
+AM_SA_WRK      46,604           19,938,578.8   8                       0.1          15,216.8           1,141.69
+AM_SA_PER      47,504            7,007,385.8   8                       0.1           7,096               305.8 
+AM_SA_CV       46,409            4,858,632.1   1                       0.1           2,778.5             238.07
+AM_SA_MD       45,695            3,799,369.2   2                       0.1           2,307.7             198.78
+AM_SA_HV       45,307            1,850,457.9   9                       0.1             854.6              85.82
+AM_SA_EXLH     42,885            4,925,314.9   9                       0.1           7,429.1             447.25
+MD_SA_TOT      48,985           79,824,339.31  31                      0.1          38,342.7           3,616.51
+MD_SA_WRK      47,369           11,951,712.6   6                       0.1           8,285               668.87
+MD_SA_PER      48,172           33,792,046.3   3                       0.1          11,426.2           1,295.92
+MD_SA_CV       47,193           11,209,405.3   3                       0.1           6,470.1             557.29
+MD_SA_MD       46,799            8,915,990               190.52        0.1           5,569.6             486.15
+MD_SA_HV       46,569            4,567,168.1   1                       0.1           2,215.7             220.06
+MD_SA_EXLH     43,621            9,388,017               215.22        0.1          10,165.6             838.43
+PM_SA_TOT      49,074           61,894,342.38  38                      0.1          25,164.4           2,656.36
+PM_SA_WRK      47,408           18,736,932.5   5                       0.1          13,328.6             995.34
+PM_SA_PER      48,324           20,780,088.4   4                       0.1           6,452.1             736.74
+PM_SA_CV       46,979            7,087,868.3   3                       0.1           3,485.7             326.99
+PM_SA_MD       46,429            5,588,221.9   9                       0.1           2,857.6             274.23
+PM_SA_HV       46,134            2,783,131.5   5                       0.1           1,163               122.51
+PM_SA_EXLH     44,253            6,918,099.8   8                       0.1           8,018.4             604.75
+EV_SA_TOT      48,788           58,620,452.5   5                       0.1          34,329.8           2,789.59
+EV_SA_WRK      47,035           11,813,571.3   3                       0.1          11,022.1             732.65
+EV_SA_PER      48,005           22,082,491.1   1                       0.1           7,725.1             843.62
+EV_SA_CV       46,788            8,216,390.9   9                       0.1           6,133.4             429.76
+EV_SA_MD       46,344            6,504,041.1   1                       0.1           5,364.3             371.75
+EV_SA_HV       46,128            3,321,314.7   7                       0.1           2,199.1             166.58
+EV_SA_EXLH     42,925            6,682,643.4   4                       0.1           7,588.1             615.19
+DY_SA_TOT      49,312          242,718,872.82  82                      0.1         115,357.6          10,939.96
+DY_SA_WRK      48,197           62,440,795.2   2                       0.1          38,539             3,260.36
+DY_SA_PER      48,529           83,662,011.61  61                      0.1          26,367.6           3,098.07
+DY_SA_CV       47,527           31,372,296.59  59                      0.1          18,511.6           1,531.94
+DY_SA_MD       47,154           24,807,622.2   2                       0.1          15,389.9           1,307.99
+DY_SA_HV       46,902           12,522,072.2   2                       0.1           6,091.4             584.73
+DY_SA_EXLH     45,043           27,914,110               619.72        0.1          31,378             2,449.21
+USTM_NAT      409,664                                            (NAT     )  (USTM    )
+ID            336,640    2,262,700,619,829         6,721,425.32  306,842        12,621,550         7,636,291.38
+LENGTH        337,228              933,568.79  79                      0               433.51              6.66
+ID1           336,640       29,069,300,976            86,351.3         1           170,994            99,270.47
+ID11          336,640       30,021,540,757            89,179.96    2,353           177,015           102,177.95
+LENGTH1       336,430              865,759.66  66                      0.01            159.71              5.29
+DIR1            6,516                1,006                 0.15       -1                 1                 1   
+RECTYPE       335,785                                            (L       )  (L       )
+VERSION       336,714                                            (0       )  (3.1     )Page 12  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+-------------------------------------
+ORIGID        335,866  972,715,882,448,237     2,896,142,754.69        5     9,000,050,027     3,299,505,786.13
+STFIPS        335,884            9,787,244                29.14        1                56                33.08
+STATE         336,690                                            (0       )  (YT      )
+CTFIPS        335,884           30,698,216                91.4         1               999               137.44
+SOURCE        335,874                                            (0       )  (u       )
+LGURB         183,147           20,287,087               110.77        1               510               174.71
+SMURB         184,139        9,033,008,898            49,055.38      199            98,182            56,496.49
+SIGN1         264,641                                            (266     )  (U9W     )
+SIGNT1        264,641                                            (2       )  (U       )
+SIGNN1        265,286                                            ( 168    )  (Z       )
+SIGNQ1         10,816                                            (A       )  (X       )
+SIGN2          50,202                                            (0       )  (U98     )
+SIGNT2         50,204                                            (0       )  (U       )
+SIGNN2         50,180                                            (1       )  (W       )
+SIGNQ2          1,490                                            (A       )  (T       )
+SIGN3           8,109                                            (.620 1  )  (U98     )
+SIGNT3          8,109                                            (.       )  (U       )
+SIGNN3          8,107                                            (1       )  (VV      )
+SIGNQ3            154                                            (A       )  (P       )
+LNAME         130,258                                            (0       )  (Zuni Rd )
+MILES         337,154              948,857.67  67                      0               850.06              9.16
+KM            336,633            1,385,247.61  61                      0               255.53              8.46
+FCLASS        297,414            2,862,920                 9.63        1                98                11.51
+RUCODE        335,578              886,739                 2.64        1                 4                 2.95
+STATUS        336,427              338,139                 1.01        1                10                 1.01
+NHS           155,641              661,194                 4.25        1                 8                 5.17
+NN            129,695              129,695                 1           1                 1                 1   
+TRK_RTE       336,224              469,729                 1.4         1                11                 1.52
+LCV_TYPE       20,279               78,721                 3.88        1                 7                 4.67
+OID_          336,638       29,068,964,336            86,350.81        1           170,993            99,269.9 
+ID_1          336,640       30,021,540,757            89,179.96    2,353           177,015           102,177.95
+VERSION_1     336,714                                            (0       )  (3.1     )
+AADT07        335,470        9,169,872,641            27,334.4        48           374,000            48,163.09
+AADTT07       334,633          913,596,751             2,730.15        2            49,671             5,039.1 
+FAF07         221,663          454,160,090             2,048.88        1            31,114             4,024.66
+NONFAF07      334,714          561,648,499             1,678           1            47,138             3,183.58
+AADT40        335,404       16,268,557,630            48,504.36       61           722,261            84,777.97
+AADTT40       335,501        1,814,634,924             5,408.73        1           125,854            10,175.74
+FAF40         204,479          811,024,014             3,966.29        1            58,159             7,814.84
+NONFAF40      334,650        1,003,610,910             2,998.99        1           110,309             5,721.21
+CAP07         335,890        1,044,566,840             3,109.85      222            63,673             3,745.26
+SF07          335,890          506,824,525             1,508.9         3            17,902             2,396.19
+VCR07         335,890              141,137.01  01                      0                 3.83              0.51
+SPEED07       337,228           13,965,845.13  13                      0                78.1              43.64
+DELAY07       139,293                4,678.95  95                      0                 2.83              0.12
+CAP40         335,826        1,056,031,208             3,144.58      100            62,911             3,799.07
+SF40          335,826          906,447,740             2,699.16        4            37,051             4,275.4 
+VCR40         335,826              250,603.05  05                      0                 6.19              0.94
+SPEED40       337,148           11,005,923.38  38                      0                78.1              37.69
+DELAY40       248,420               44,902.38  38                      0                 5.19              0.44
+FROM_ID       336,640    2,259,148,277,870         6,710,872.97  305,106        12,618,869         7,627,307.3 
+TO_ID         336,640    2,261,138,287,560         6,716,784.36  296,538        12,618,869         7,632,503.25
+UT_FLAG            56                   56                 1           1                 1                 1   
+COUNTRY            74                                            (Mexico  )  (Mexico  )Page 13  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+-------------------------------------
+TIME          337,228            1,593,283.74  74                      0               578.01             11   
+EXTPATHFLAG         8                    8                 1           1                 1                 1   
+
+      Obs = 0:  SELGRP  REL_LN  DIR
+
+_Variables with values:
+
+_ZONES                   8,775      
+_USTM_TOT_CNT           35,658      
+_USTM_TAZ_CNT            8,745      
+_USTM_TAZ_MAX            8,775      
+_USTM_EXT_CNT               27      
+_USTM_EXT_MAX               27      
+_USTM_EXT_MIN                1      
+_USTM_HWY_CNT           26,886      
+_NAT_TOT_CNT           133,753      
+_NAT_TAZ_CNT               186      
+_NAT_TAZ_MAX               215      
+_NAT_EXT_CNT                28      
+_NAT_EXT_MAX               284      
+_NAT_EXT_MIN               216      
+_NAT_HWY_CNT           133,498      
+
+End   PROCESS PHASE LINKMERGE
+
+M(664): Unconnected Zones:  28-29<->  444<->  447-450<->  619-628<->  729<->  2338-2343<->
+        2346-2348<->  2350<->  2353<->  2357<->  3514<->  3557<->  3566<->
+        3570<->  6425-6428<->  7677<->  7867<->  7873<->  7895<->  7897-7898<->
+        7916-7917<->  7924<->  7929-7934<->  7937-7938<->  7940-7941<->
+        7943-7951<->  7954-7955<->  7957<->  7961-7969<->  7971-7972<->  7975<->
+        7989<->  7991<->
+
+
+Begin PROCESS PHASE SUMMARY
+Page 14  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+-------------------------------------
+_Variables with values:
+
+_ZONES                   8,775      
+_USTM_TOT_CNT           35,658      
+_USTM_TAZ_CNT            8,745      
+_USTM_TAZ_MAX            8,775      
+_USTM_EXT_CNT               27      
+_USTM_EXT_MAX               27      
+_USTM_EXT_MIN                1      
+_USTM_HWY_CNT           26,886      
+_NAT_TOT_CNT           133,753      
+_NAT_TAZ_CNT               186      
+_NAT_TAZ_MAX               215      
+_NAT_EXT_CNT                28      
+_NAT_EXT_MAX               284      
+_NAT_EXT_MIN               216      
+_NAT_HWY_CNT           133,498      
+_RS_MAXEXTERNAL             30      
+_NEW_ZONE                8,961      
+_USTM_HIGHEST            8,775      
+_NAT_HIGHEST               284      
+_USTM_TAZ_FIRST             31      
+_USTM_TAZ_LAST           8,775      
+_NAT_TAZ_FIRST           8,776      
+_NAT_TAZ_LAST            8,961      
+_USTM_HWY_FIRST         10,000      
+_USTM_HWY_LAST          36,886      
+_NAT_HWY_FIRST          80,000      
+_NAT_HWY_LAST          213,498      
+
+End   PROCESS PHASE SUMMARY
+LOG: NETWORK._USTM_HIGHEST=8775
+LOG: NETWORK._USTM_TAZ_MAX=8775
+LOG: NETWORK._USTM_EXT_MIN=1
+LOG: NETWORK._USTM_EXT_MAX=27
+LOG: NETWORK._USTM_TAZ_CNT=8745
+LOG: NETWORK._USTM_EXT_CNT=27
+LOG: NETWORK._USTM_HWY_CNT=26886
+LOG: NETWORK._NAT_HIGHEST=284
+LOG: NETWORK._NAT_TAZ_MAX=215
+LOG: NETWORK._NAT_EXT_MIN=216
+LOG: NETWORK._NAT_EXT_MAX=284
+LOG: NETWORK._NAT_TAZ_CNT=186
+LOG: NETWORK._NAT_EXT_CNT=28
+LOG: NETWORK._NAT_HWY_CNT=133498
+LOG: NETWORK._NEW_ZONE=8961
+
+NETWORK  ReturnCode = 1  Elapsed Time = 00:00:05
+################################################################################
+Page 15  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+-------------------------------------
+NETWORK (v.08/13/2019 [6.4.5 x64])  Fri Jul 02 13:00:33 2021
+
+FILEI LINKI[1] = "BY_2019.net"
+FILEI LINKI[2] = "Nation_NAD_2017-09-11_NoUtah.net"
+
+FILEO NETO = "USTM_NAT_Merged.NET",
+    INCLUDE=A,
+            B,
+            DISTANCE,
+            FT,
+            SPEED,
+            TIME,
+            USTM_NAT
+
+FILEO LINKO = "USTM_NAT_Merged_Link.dbf",
+    INCLUDE=A,
+            B,
+            DISTANCE,
+            FT,
+            SPEED,
+            TIME,
+            USTM_NAT
+
+
+
+FILEO NODEO = "USTM_NAT_Merged_Node.dbf",
+    INCLUDE=N,
+            X,
+            Y
+
+
+FILEO PRINTO[1] = "NodeEquiv_USTM.csv"
+FILEO PRINTO[2] = "NodeEquiv_NAT.csv"
+
+FILEO PRINTO[3] = "NodeEquiv_All_USTM.csv"
+FILEO PRINTO[4] = "Joint_Nodes.csv"
+FILEO PRINTO[5] = "External_Links.csv"
+
+
+    ZONES = 9999  ;8961
+
+
+    ;define arrays
+    ARRAY USTM_NewNode = 9999999,
+           NAT_NewNode = 9999999,
+              PrevNode = 9999999
+
+
+    ;merge input networks
+    MERGE RECORD = T
+
+
+    ;pre-process node data ---------------------------------------------------------------
+    ;USTMPage 16  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+-------------------------------------
+    PHASE=INPUT FILEI=ni.1
+        ;Print out the headers for all equivalency files
+        if (_SAEquivHeader=0)
+            _SAEquivHeader = 1
+            PRINT PRINTO=1, CSV=T, FORM=10.0, LIST = ';PrevNode','New_Node','Type'
+            PRINT PRINTO=2, CSV=T, FORM=10.0, LIST = ';PrevNode','New_Node','Type'
+        endif
+
+        ;number USTM/USTM externals
+        if (SUB_TYPE=2)
+            _USTM_EXT_Idx = _USTM_EXT_Idx + 1
+
+            ;begin USTM numbering scheme with USTM externals
+            USTM_NewNode[N] = _USTM_EXT_Idx
+
+            PRINT PRINTO=1, CSV=T, FORM=10.0, LIST=N, USTM_NewNode[N], 'External'
+        endif
+
+        ;number USTM TAZ
+        if (SUB_TYPE=1)
+            _USTM_TAZ_Idx = _USTM_TAZ_Idx + 1
+
+            ;after externals, number USTM TAZ in order of Rrual TAZ
+            _NewTAZ_USTM = _RS_MaxExternal +
+                            _USTM_TAZ_Idx
+
+            USTM_NewNode[N] = _NewTAZ_USTM
+
+            PRINT PRINTO=1, CSV=T, FORM=10.0, LIST=N, USTM_NewNode[N], 'TAZ'
+        endif
+
+        ;number USTM highway nodes
+        if (SUB_TYPE=0,3)
+            _USTM_HWY_Idx = _USTM_HWY_Idx + 1
+
+            ;start Rrual highway number scheme at 10,000
+            USTM_NewNode[N] = 10000-1 + _USTM_HWY_Idx
+
+            PRINT PRINTO=1, CSV=T, FORM=10.0, LIST=N, USTM_NewNode[N], 'Highway'
+        endif
+
+        ;set N to be new node number and store original node number in PrevNode array
+        _Temp           = USTM_NewNode[N]    ;set temp variable to new node number
+        PrevNode[_Temp] = N                   ;store original node number into array at index of new node
+        N               = _Temp               ;set N to new node number
+
+    ENDPHASE
+
+
+    ;NAT
+    PHASE=INPUT FILEI=ni.2
+        ;number NAT TAZ & externals
+        if (N<=215)
+            _NAT_TAZ_Idx = _NAT_TAZ_Idx + 1Page 17  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+-------------------------------------
+
+            ;after USTM, USTM TAZ numbering scheme uses NAT TAZ and externals
+            _NewTAZ_NAT = _NewTAZ_USTM +
+                         _NAT_TAZ_Idx
+
+            NAT_NewNode[N] = _NewTAZ_NAT
+
+            PRINT PRINTO=2, CSV=T, FORM=10.0, LIST=N, NAT_NewNode[N], 'TAZ'
+
+        ;number NAT highway nodes
+        else
+            _NAT_HWY_Idx = _NAT_HWY_Idx + 1
+
+            ;start Rrual highway number scheme at 10,000
+            NAT_NewNode[N] = 30000-1 +
+                            _NAT_HWY_Idx
+
+            if (SUB_TYPE=2)    PRINT PRINTO=2, CSV=T, FORM=10.0, LIST=N, NAT_NewNode[N], 'External'
+            if (SUB_TYPE=0,3)  PRINT PRINTO=2, CSV=T, FORM=10.0, LIST=N, NAT_NewNode[N], 'Highway'
+
+            ;reset SUB_TYPE for USTM-National network subarea extraction
+            SUB_TYPE=0
+        endif
+
+        ;set N to be new node number and store original node number in PrevNode array
+        _Temp           = NAT_NewNode[N]
+        PrevNode[_Temp] = N                               ;Restore original node number N to PrevNode field
+        N               = NAT_NewNode[N]                   ;Update node number
+
+    ENDPHASE
+
+
+    ;pre-process link data ---------------------------------------------------------------
+    ;USTM
+    PHASE=INPUT FILEI = li.1
+        A = USTM_NewNode[A]
+        B = USTM_NewNode[B]
+    ENDPHASE
+
+    ;NAT
+    PHASE=INPUT FILEI = li.2
+        A = NAT_NewNode[A]
+        B = NAT_NewNode[B]
+    ENDPHASE
+
+
+    ;process nodes -----------------------------------------------------------------------
+    PHASE=NODEMERGE
+        ;update JOINT_NODE
+        if (JOINT_NODE>0)
+            OLD_JTNODE = JOINT_NODE
+
+            if (JOINT_TYPE=1)
+                JOINT_NODE = NAT_NewNode[JOINT_NODE]Page 18  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+-------------------------------------
+            endif
+        endif
+
+
+        ;print new node number scheme equivalency
+        if (_NewEquivHeader=0)
+            _NewEquivHeader=1
+            PRINT PRINTO=6, CSV=T, FORM=10.0, LIST = ';New_Node','PrevNode','Type', 'Source'
+        endif
+
+        ;USTM
+        if (USTM_NAT='USTM')
+            if (SUB_TYPE=1)
+                PRINT PRINTO=3, CSV=T, FORM=10.0, LIST=N, PrevNode[N], 'TAZ', 'USTM'
+            elseif (SUB_TYPE=2)
+                PRINT PRINTO=3, CSV=T, FORM=10.0, LIST=N, PrevNode[N], 'External', 'USTM'
+            else
+                PRINT PRINTO=3, CSV=T, FORM=10.0, LIST=N, PrevNode[N], 'Highway', 'USTM'
+            endif
+
+        ;NAT
+        elseif (USTM_NAT='NAT')
+            if (SUB_TYPE=1)
+                PRINT PRINTO=3, CSV=T, FORM=10.0, LIST=N, PrevNode[N], 'TAZ', 'NAT'
+            elseif (SUB_TYPE=2)
+                PRINT PRINTO=3, CSV=T, FORM=10.0, LIST=N, PrevNode[N], 'External', 'NAT'
+            else
+                PRINT PRINTO=3, CSV=T, FORM=10.0, LIST=N, PrevNode[N], 'Highway', 'NAT'
+            endif
+
+        ;print joint node temp file
+        if (_JointNodeHeader=0)
+
+W(707): A name (_JointNodeHeader) exceeds 15 characters.
+            _JointNodeHeader=1
+            PRINT PRINTO=4, CSV=T, FORM=10.0, LIST=';N', 'X', 'Y', 'EXTERNAL', 'JOINT_TYPE', 'JOINT_NODE', 'PrevNode'
+        endif
+
+        if (EXTERNAL>0 | JOINT_TYPE>0)
+            PRINT PRINTO=4, CSV=T, FORM=10.0, LIST=N, X(15.7), Y(15.7), EXTERNAL, JOINT_TYPE, JOINT_NODE, PrevNode[N]
+        endif
+
+        ;set network variables
+        OLD_NODE  = 0              ;place holder for national-USTM merged network
+        SUBAREA_N = PrevNode[N]    ;store original subarea node
+    ENDPHASE
+
+
+    ;process links -----------------------------------------------------------------------
+    PHASE=LINKMERGE
+
+        ;print external link temp file
+        if (_ExtLinkeader=0)
+            _ExtLinkeader=1Page 19  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+-------------------------------------
+            PRINT PRINTO=5, CSV=T, FORM=10.0, LIST=';A', 'B', 'EXTERNAL', 'SUB_TYPE_L'
+        endif
+
+        if (A.EXTERNAL>1 | B.EXTERNAL>1)
+            _External = MAX(A.EXTERNAL, B.EXTERNAL)
+
+            PRINT PRINTO=5, CSV=T, FORM=10.0, LIST=A, B, _External, SUB_TYPE_L
+        endif
+
+        if (USTM_NAT='USTM')
+            DISTANCE = li.1.DISTANCE
+            TIME     = li.1.FF_TIME
+            SPEED    = li.1.FF_SPD
+        elseif (USTM_NAT='NAT')
+            DISTANCE = li.2.MILES
+            TIME     = li.2.TIME
+            SPEED    = li.2.SPEED07
+        endif
+
+    ENDPHASE
+
+
+F(081): IF #11 does not have matching ENDIF
+
+F(094): Misplaced ELSEIF in control stream.
+F(206): There are 18 IFs and 17 ENDIFs.
+
+F(205): IF(#11) has missing ENDIF.
+F(204): IF(#11) has conflict with PROCESS(#6).
+
+NETWORK Stack Size = 9872 bytes.
+................................................................................
+
+
+
+
+BY_2019.net   (VOYAGER):
+
+NET PGM=CUBE   DATE=Fri Jul 02 12:33:40 2021
+ID= 
+PAR Zones=8775    Nodes=71091     Links=75513     NodeRecs=35658     
+NVR 92    N    X    Y    NODENAME=20    EXTERNAL    TAZID    CO_TAZID
+    SUBAREAID    SUBAREA_N    JOINT_TYPE    JOINT_NODE    OLD_JTNODE
+    SUB_TYPE    OLD_NODE    CO_FIPS    CO_NAME=13    CITY_NAME=25    DISTLRG
+    DLRG_NAME=30    DISTMED    DMED_NAME=29    DISTSML    DSML_NAME=29
+    AREATYPE    ATYPENAME=10    ATYPEGRP=5    HHPOP    TOTHH    HHSIZE
+    ALLEMP    RETL    FOOD    MANU    WSLE    OFFI    GVED    HLTH    OTHR
+    AGRI    MING    CONS    AVGINCOME    SA_TAZID    II_PER_P    II_PER_A
+    HBW_P    HBW_A    HBSHP_P    HBSHP_A    HBOTH_P    HBOTH_A    HBSC_PR_P
+    HBSC_PR_A    HBSC_SC_P    HBSC_SC_A    NHBW_P    NHBW_A    NHBNW_P
+    NHBNW_A    NHBW_ORGP    NHBNW_ORGP    REC_P    REC_A    IX_VEH_P
+    IX_VEH_A    IX_BUS_P    IX_BUS_A    IX_OTH_P    IX_OTH_A    IX_REC_P
+    IX_REC_A    IX_MD_P    IX_MD_A    XI_VEH_P    XI_VEH_A    XI_BUS_P
+    XI_BUS_A    XI_OTH_P    XI_OTH_A    XI_REC_P    XI_REC_A    XI_MD_PPage 20  (VOYAGER NETWORK) Model Run
+Wasatch Front Regional Council
+-------------------------------------
+    XI_MD_A    TOTTRUCK_P    TOTTRUCK_A    SH_LT_P    SH_LT_A    SH_MD_P
+    SH_MD_A    SH_HV_P    SH_HV_A    USTM_NAT=4
+LVR 99    A    B    STREET=31    DISTANCE    LANES    TWLTL    PL    FT
+    FTCLASS=18    TRK_RSTRCT    ONEWAY    COUPLET1WY    SELGRP    REL_LN
+    ANGLE    DIRECTION=2    IB_OB=2    CPLT_SFAC    CPLT_CFAC    SFAC    CFAC
+    CURVERATIO    LINKID=11    SEGID=11    TAZID    CO_TAZID    SUBAREAID
+    SUBAREA_A    SUBAREA_B    SUB_TYPE_L    CONCT_SA    CO_FIPS    CO_NAME=13
+    CITY_NAME=25    DISTLRG    DLRG_NAME=30    DISTMED    DMED_NAME=29
+    DISTSML    DSML_NAME=29    AREATYPE    ATYPENAME=10    ATYPEGRP=5
+    FF_RAMPPEN    AM_RAMPPEN    MD_RAMPPEN    PM_RAMPPEN    EV_RAMPPEN
+    CAP1HR1LN    AM_CAP    MD_CAP    PM_CAP    EV_CAP    FF_SPD    AM_SPD
+    MD_SPD    PM_SPD    EV_SPD    FF_TIME    AM_TIME    MD_TIME    PM_TIME
+    EV_TIME    AM_SA_TOT    AM_SA_WRK    AM_SA_PER    AM_SA_CV    AM_SA_MD
+    AM_SA_HV    AM_SA_EXLH    MD_SA_TOT    MD_SA_WRK    MD_SA_PER    MD_SA_CV
+    MD_SA_MD    MD_SA_HV    MD_SA_EXLH    PM_SA_TOT    PM_SA_WRK    PM_SA_PER
+    PM_SA_CV    PM_SA_MD    PM_SA_HV    PM_SA_EXLH    EV_SA_TOT    EV_SA_WRK
+    EV_SA_PER    EV_SA_CV    EV_SA_MD    EV_SA_HV    EV_SA_EXLH    DY_SA_TOT
+    DY_SA_WRK    DY_SA_PER    DY_SA_CV    DY_SA_MD    DY_SA_HV    DY_SA_EXLH
+    USTM_NAT=4
+
+
+
+
+Nation_NAD_2017-09-11_NoUtah.net   (VOYAGER):
+
+NET PGM=CUBE   DATE=Fri Jul 02 12:25:13 2021
+ID= 
+PAR Zones=284     Nodes=145311    Links=337228    NodeRecs=133753    
+NVR 8    N    X    ID    UT_EXT    COUNTRY=6    Y    OLD_UT_EXT
+    USMT_NAT=1
+LVR 68    A    B    ID    LENGTH    DIR    ID1    ID11    LENGTH1    DIR1
+    RECTYPE=1    VERSION=3    ORIGID    STFIPS    STATE=2    CTFIPS    SOURCE=1
+    LGURB    SMURB    SIGN1=6    SIGNT1=1    SIGNN1=4    SIGNQ1=1    SIGN2=6
+    SIGNT2=1    SIGNN2=4    SIGNQ2=1    SIGN3=6    SIGNT3=1    SIGNN3=4
+    SIGNQ3=1    LNAME=30    MILES    KM    FCLASS    RUCODE    STATUS    NHS
+    NN    TRK_RTE    LCV_TYPE    OID_    ID_1    VERSION_1=3    AADT07
+    AADTT07    FAF07    NONFAF07    AADT40    AADTT40    FAF40    NONFAF40
+    CAP07    SF07    VCR07    SPEED07    DELAY07    CAP40    SF40    VCR40
+    SPEED40    DELAY40    FROM_ID    TO_ID    UT_FLAG    COUNTRY=6    TIME
+    EXTPATHFLAG    USTM_NAT=3
+
+
+NETWORK  ReturnCode = 2  Elapsed Time = 00:00:00
+################################################################################
+
+
+VOYAGER  ReturnCode = 2  Elapsed Time = 00:00:05
